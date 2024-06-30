@@ -1,6 +1,6 @@
 import os
 
-target_dir = 'data/labels/Crosswalk'
+target_dir = "data/images/Crosswalk"
 
 for filename in os.listdir(target_dir):
     newname = "Crosswalk " + filename.split()[-1]
