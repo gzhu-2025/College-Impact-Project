@@ -52,5 +52,4 @@ for filename in os.listdir(label_dir):
         
 np_grids = np.array(grids)
 
-np.save(f"{sys.argv[1]}.npy", np_grids)
-
+np.save(f"data/labels/_ndarrays/{sys.argv[1]}.npy", np_grids)
