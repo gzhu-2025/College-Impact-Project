@@ -282,6 +282,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
 def train(dataloader, model, loss_fn, optimizer, epochs=100):
     size = len(dataloader.dataset)
     model.train()
+    losses = []
     for epoch in range(epochs):
         for batch, sample in enumerate(dataloader):
             image, grid = sample["image"].to(device), sample["grid"].to(device)
@@ -292,9 +293,9 @@ def train(dataloader, model, loss_fn, optimizer, epochs=100):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-
+            losses.append(loss.item())
             if batch % 10 == 0:
-                loss, current = loss.item(), (batch + 1) * len(image)
+                loss, current = np.mean(losses[-50:]), (batch + 1) * len(image)
                 print(f"loss: {loss:>f} [{current:>5d}/{size:>5d}]")
 
 
