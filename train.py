@@ -1,5 +1,3 @@
-
-
 import torch, os, sys
 
 from skimage import io, transform
@@ -10,6 +8,7 @@ import matplotlib.patches as patches
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms, utils
+from cifar.models import * 
 
 import warnings
 
@@ -45,7 +44,7 @@ def show_image(image, grid):
             ax.add_patch(rect)
 
 
-class ToTensor_train(object):
+class ToTensor(object):
 
     def __call__(self, sample):
        
@@ -58,9 +57,31 @@ class ToTensor_train(object):
             "grid": torch.from_numpy(grid),
         }
 
+class RandomHorizontalFlip(object):
+    def __call__(self, sample):
+        return
+
+# removes the 4th RGBa channel for models which use only 3 color channels
+class ColorChannelCorrection(object):
+    def __call__(self, sample):
+        image, grid = sample["image"], sample["grid"]
+
+        
+        zeros = torch.zeros(3, 120, 120)
+        
+        zeros = zeros + image[:3]
+
+        return {
+            "image_name": sample["image_name"],
+            "image": zeros,
+            "grid": grid,
+        }
+
 class GridPointsDataset(Dataset):
 
-    def __init__(self, category, array_dir, image_dir, transform=None):
+    def __init__(self, category, array_dir, image_dir, train, seed, transform=None):
+        self.train = train
+        self.seed = seed
 
         self.category = category  # Crosswalk, Chimney, Stair
         self.array_dir = array_dir
@@ -72,17 +93,26 @@ class GridPointsDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return self.grids.shape[0]
+        return int(self.grids.shape[0] * 4/5) \
+            if self.train else int(self.grids.shape[0] /5) 
 
     def __getitem__(self, index):
         if torch.is_tensor(index):
             index = index.toList()
 
+        if self.train:
+            if index > seed:
+                num = int(index + self.__len__() / 4)
+            else:
+                num = index
+        else:
+            num = index + self.seed
+
         image_name = os.path.normpath(
             os.path.join(
                 self.image_dir,
                 self.category,
-                f"{self.category} ({self.grids[index][0]}).png",
+                f"{self.category} ({self.grids[num][0]}).png",
             )
         )
 
@@ -153,16 +183,39 @@ def show_batch(dataloader, train):
                 plt.show(block=True)
                 break
 
+size = 180
+seed = np.random.randint(4/5 * 180)
+
 gridpoints_dataset = GridPointsDataset(
     category="Crosswalk",
     array_dir="data/labels/_ndarrays",
     image_dir="data/images",
-    transform=transforms.Compose([ToTensor_train()]),
+    train=True,
+    seed=seed,
+    transform=transforms.Compose([
+        ToTensor(),
+        ColorChannelCorrection(),
+        ]),
 )
 
-training_dataloader = DataLoader(gridpoints_dataset, batch_size=4, shuffle=True, num_workers=0)
-   
-show_batch(training_dataloader, train=True)
+val_dataset = GridPointsDataset(
+    category="Crosswalk",
+    array_dir="data/labels/_ndarrays",
+    image_dir="data/images",
+    train=False,
+    seed=seed,
+    transform=transforms.Compose([
+        ToTensor(),
+        ColorChannelCorrection(),
+        ]),
+)
+
+training_dataloader = DataLoader(gridpoints_dataset, batch_size=1, shuffle=True, num_workers=0)
+val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=0)   
+# show_batch(training_dataloader, train=True)
+
+# print(len(gridpoints_dataset), len(val_dataset))
+# print(seed)
 
 device = (
     "cuda"
@@ -170,14 +223,14 @@ device = (
     else "mps" if torch.backends.mps.is_available() else "cpu"
 )
 
-print(f"Using {device} device")
+# print(f"Using {device} device")
 
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(120 * 120 * 4, 512),
+            nn.Linear(120 * 120 * 3, 512),
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
@@ -190,7 +243,7 @@ class NeuralNetwork(nn.Module):
         return logits
 
 model = NeuralNetwork().to(device)
-print(model)
+# print(model)
 
 # loss_fn = nn.MSELoss()
 loss_fn = nn.BCEWithLogitsLoss()
@@ -199,50 +252,84 @@ lr = 1e-4
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
+losses = []
+lossavg = []
 
-def train(dataloader, model, loss_fn, optimizer, epochs=100):
+valloss = []
+valavg = []
+
+def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
 
     size = len(dataloader.dataset)
     model.train()
-    losses = []
-    lossavg= []
+    
+    
     for epoch in range(epochs):
         
         for batch, sample in enumerate(dataloader):
 
             image, grid = sample["image"].to(device), sample["grid"].to(device)
+            optimizer.zero_grad()
 
             pred = model(image)
             loss = loss_fn(pred, grid.type(torch.float32))  
 
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
             losses.append(loss.item())
             if batch % 10 == 0:
                 os.system('cls')
                 print("epoch: ", epoch)
-                meanloss, current = np.mean(losses[-50:]), (batch + 1) * len(image)
+                meanloss, meanvalloss, current = np.mean(losses[-50:]), np.mean(valloss[-50:]), (batch + 1) * len(image)
+
                 lossavg.append(meanloss)
                 
-                print(f"loss: {loss:>f} [{current:>5d}/{size:>5d}]\nlr: {lr}")
-    
-    plot_loss(losses, epochs, lossavg)
+                print(f"loss: {loss:>f} [{current:>5d}/{size:>5d}]\naverage validation loss: {meanvalloss:>f}\naverage loss: {meanloss:>f}\nlr: {lr}")
+        if epoch % 5 == 4:
+            test(valdataloader)
+            
 
-def plot_loss(loss, epochs, lossavg):
+    
+    plot_loss(lossavg, epochs, valavg, max(max(lossavg), max(valavg)))
+
+def test(valdataloader):
+    model.eval()
+
+    with torch.no_grad():
+        for batch, sample in enumerate(valdataloader):
+
+            image, grid = sample["image"].to(device), sample["grid"].to(device)
+
+            pred = model(image)
+            loss = loss_fn(pred, grid.type(torch.float32))  
+
+            
+            valloss.append(loss.item())
+            
+            meanloss = np.mean(valloss[-50:])
+            valavg.append(meanloss)
+
+def plot_loss(lossavg, epochs, valavg, maxloss):
     plt.figure()
     plt.ioff()
 
 
-    plt.plot(loss, label='loss')
     plt.plot(lossavg, label='average loss')
+    plt.plot(valavg, label='average val loss')
 
-    plt.axis((0, epochs, 0, max(loss)))
+    plt.axis((0, epochs, 0, maxloss))
     # print(max(loss))
     plt.legend()
     plt.show(block=True)
             
-train(training_dataloader, model, loss_fn, optimizer, epochs=250)
+model = SimpleDLA().to(device)
+# if device == 'cuda':
+#     model = torch.nn.DataParallel(model)
+    
+model.load_state_dict(torch.load("./cifar/checkpoint/ckpt.pth")['net'], strict=False)
 
-torch.save(model.state_dict(), "model.pth")
-print("Saved PyTorch Model State to model.pth")
+
+train(training_dataloader, val_dataloader, model, loss_fn, optimizer, epochs=250)
+
+# torch.save(model.state_dict(), "model.pth")
+# print("Saved PyTorch Model State to model.pth")
