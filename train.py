@@ -1,6 +1,6 @@
 import torch, os, sys
 
-from skimage import io, transform
+from skimage import io, transform #type: ignore
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -8,7 +8,7 @@ import matplotlib.patches as patches
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms, utils
-from cifar.models import * 
+# from cifar.models import * 
 
 import warnings
 
@@ -63,22 +63,24 @@ class ColorChannelCorrection(object):
         image, grid = sample["image"], sample["grid"]
 
         
-        zeros = torch.zeros(3, 120, 120)
+        # zeros = torch.zeros(3, 120, 120)
         
-        zeros = zeros + image[:3]
+        # zeros = zeros + image[:3]
+        
+        assert image[:3].shape == (3, 120, 120) , "Image shape is not 3, 120, 120"
 
         return {
             "image_name": sample["image_name"],
-            "image": zeros,
+            "image": image[:3],
             "grid": grid,
         }
 
 
 class GridPointsDataset(Dataset):
 
-    def __init__(self, category, array_dir, image_dir, train, seed, transform=None):
+    def __init__(self, category, array_dir, image_dir, train, transform=None):
         self.train = train
-        self.seed = seed
+        # self.seed = seed
 
         self.category = category  # Crosswalk, Chimney, Stair
         self.array_dir = array_dir
@@ -90,26 +92,27 @@ class GridPointsDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return int(self.grids.shape[0] * 4/5) \
-            if self.train else int(self.grids.shape[0] /5) 
+        # return int(self.grids.shape[0] * 4/5) \
+        #     if self.train else int(self.grids.shape[0] /5) 
+        return self.grids.shape[0]
 
     def __getitem__(self, index):
         if torch.is_tensor(index):
             index = index.toList()
 
-        if self.train:
-            if index > seed:
-                num = int(index + self.__len__() / 4)
-            else:
-                num = index
-        else:
-            num = index + self.seed
+        # if self.train:
+        #     if index > seed:
+        #         num = int(index + self.__len__() / 4)
+        #     else:
+        #         num = index
+        # else:
+        #     num = index + self.seed
 
         image_name = os.path.normpath(
             os.path.join(
                 self.image_dir,
                 self.category,
-                f"{self.category} ({self.grids[num][0]}).png",
+                f"{self.category} ({self.grids[index][0]}).png",
             )
         )
 
@@ -181,33 +184,40 @@ def show_batch(dataloader, train):
                 break
 
 size = 180
-seed = np.random.randint(4/5 * 180)
+# seed = np.random.randint(4/5 * 180)
 
 gridpoints_dataset = GridPointsDataset(
     category="Crosswalk",
     array_dir="data/labels/_ndarrays",
     image_dir="data/images",
     train=True,
-    seed=seed,
+    # seed=seed,
     transform=transforms.Compose([
         ToTensor(),
         ColorChannelCorrection(),
         ]),
 )
 
-val_dataset = GridPointsDataset(
-    category="Crosswalk",
-    array_dir="data/labels/_ndarrays",
-    image_dir="data/images",
-    train=False,
-    seed=seed,
-    transform=transforms.Compose([
-        ToTensor(),
-        ColorChannelCorrection(),
-        ]),
-)
+from sklearn.model_selection import train_test_split
 
-training_dataloader = DataLoader(gridpoints_dataset, batch_size=1, shuffle=True, num_workers=0)
+range_train, range_test = train_test_split(range(len(gridpoints_dataset)), test_size=0.2)
+
+train_dataset = torch.utils.data.Subset(gridpoints_dataset, range_train)
+val_dataset = torch.utils.data.Subset(gridpoints_dataset, range_test)
+
+# val_dataset = GridPointsDataset(
+#     category="Crosswalk",
+#     array_dir="data/labels/_ndarrays",
+#     image_dir="data/images",
+#     train=False,
+#     seed=seed,
+#     transform=transforms.Compose([
+#         ToTensor(),
+#         ColorChannelCorrection(),
+#         ]),
+# )
+
+training_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0)
 val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=0)   
 # show_batch(training_dataloader, train=True)
 
@@ -227,7 +237,7 @@ class NeuralNetwork(nn.Module):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(30 * 30 * 3, 512),
+            nn.Linear(30 * 30 * 3, 512), #120/4 
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
@@ -254,10 +264,10 @@ def split_image(image):
     image_grid = [transforms.functional.crop(image, (i // 4) * 30, (i % 4) * 30, 30, 30) for i in range(16)]
     return image_grid
 
-# images_batch = split_image(gridpoints_dataset[0]["image"])
-# image_grid = utils.make_grid(images_batch, nrow = 4)
-# plt.imshow(image_grid.numpy().transpose((1, 2, 0)))
-# plt.show(block=True)
+images_batch = split_image(gridpoints_dataset[0]["image"])
+image_grid = utils.make_grid(images_batch, nrow = 4)
+plt.imshow(image_grid.numpy().transpose((1, 2, 0)))
+plt.show(block=True)
 
 
 def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
@@ -314,6 +324,7 @@ def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
 
     
     plot_loss(lossavg, epochs, valavg, max(max(lossavg), max(valavg)))
+    return lossavg, valavg 
 
 def plot_loss(lossavg, epochs, valavg, maxloss):
     plt.figure()
@@ -333,9 +344,15 @@ def plot_loss(lossavg, epochs, valavg, maxloss):
 #     model = torch.nn.DataParallel(model)
     
 # model.load_state_dict(torch.load("./cifar/checkpoint/ckpt.pth")['net'], strict=False)
+train_set_testing = set([x['image_name'] for x in train_dataset])
+val_set_testing = set([x['image_name'] for x in val_dataset])
 
 
-train(training_dataloader, val_dataloader, model, loss_fn, optimizer, epochs=500)
+
+
+assert train_set_testing.intersection(val_set_testing) == set(), "Train and validation sets are not disjoint"
+
+lossavg, valavg  = train(training_dataloader, val_dataloader, model, loss_fn, optimizer, epochs=100)
 
 # torch.save(model.state_dict(), "model.pth")
 # print("Saved PyTorch Model State to model.pth")
