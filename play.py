@@ -1,50 +1,64 @@
-from models import LeNet
-
-model = LeNet()
-
 import torch
+from torch.utils.data import DataLoader
 
-X = torch.randn(1, 3, 32, 32)
+from datasets import *
+from utils import *
+from transforms import *
+from models import *
+from model_actions import *
 
-model(X).shape 
+# model = LeNet()
 
-sd = model.state_dict()
+# X = torch.randn(1, 3, 32, 32)
 
-for k, v in sd.items():
-    print(k, v.shape)
+# model(X).shape 
+
+# sd = model.state_dict()
+
+# for k, v in sd.items():
+#     print(k, v.shape)
+
+device = (
+    "cuda"
+    if torch.cuda.is_available()
+    else "mps" if torch.backends.mps.is_available() else "cpu"
+)
+
+print(f"Using {device} device")
+
+model = NeuralNetwork().to(device)
+# print(model)
+
+# loss_fn = nn.MSELoss()
+loss_fn = nn.BCEWithLogitsLoss()
+# optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+lr = 1e-4
+
+optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+
+gridpoints_dataset = GridPointsDataset(
+    category="Crosswalk",
+    array_dir="data/labels/_ndarrays",
+    image_dir="data/images",
+    train=True,
+    # seed=seed,
+    transform=transforms.Compose([
+        ToTensor(),
+        ColorChannelCorrection(),
+        ]),
+)
+
+training_dataloader = DataLoader(gridpoints_dataset, batch_size=1, shuffle=True, num_workers=0)
+
+show_batch(training_dataloader, train=True)
 
 
+model2 = LeNet2().to(device)
+model2.load_state_dict(torch.load("./checkpoints/lenet.pth")['net'], strict=False)
 
 
+loss = test(training_dataloader, model2, loss_fn)
 
-"""LeNet in PyTorch."""
-import torch.nn as nn
-import torch.nn.functional as F
+os.system('cls')
+print(f"Test Loss: {loss:>f}")
 
-
-class LeNet2(nn.Module):
-    def __init__(self):
-        super(LeNet2, self).__init__()
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        # self.fc3   = nn.Linear(84, 10)
-
-        self.crosswalk = nn.Linear(84, 1)
-
-    def forward(self, x):
-        out = F.relu(self.conv1(x))
-        out = F.max_pool2d(out, 2)
-        out = F.relu(self.conv2(out))
-        out = F.max_pool2d(out, 2)
-        out = out.view(out.size(0), -1)
-        out = F.relu(self.fc1(out))
-        out = self.fc2(out)
-        # out = self.fc3(out)
-        out = self.crosswalk(out)
-        return out
-
-
-model2 = LeNet2()
-model2.load_state_dict(model.state_dict(), strict=False)
