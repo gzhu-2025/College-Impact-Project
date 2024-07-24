@@ -44,7 +44,9 @@ def test(dataloader, model, loss_fn):
                 valloss.append(loss.item())
                 
                 i += 1
-    return np.mean(valloss)
+            os.system('cls')
+            print(f"batch: {batch}\nTest Loss: {loss:>f}\nAverage Loss: {np.mean(valloss[-50:])}")
+    return np.mean(valloss), valloss
 
 
 

@@ -57,8 +57,7 @@ model2 = LeNet2().to(device)
 model2.load_state_dict(torch.load("./checkpoints/lenet.pth")['net'], strict=False)
 
 
-loss = test(training_dataloader, model2, loss_fn)
+avgloss, losses = test(training_dataloader, model2, loss_fn)
+print(f"average test loss of dataset: {avgloss}\n")
 
-os.system('cls')
-print(f"Test Loss: {loss:>f}")
-
+plot_loss(losses, 200, losses, max(losses))
