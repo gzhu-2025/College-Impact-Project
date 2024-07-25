@@ -5,8 +5,8 @@ def plot_loss(title, lossavg, epochs, valavg, maxloss):
     plt.ioff()
 
 
-    plt.plot(lossavg, label='average loss')
-    plt.plot(valavg, label='average val loss')
+    plt.plot(lossavg, label='train loss')
+    plt.plot(valavg, label='val loss')
     
     plt.title(f"{title}, Epochs: {epochs}")
     plt.axis((0, epochs, 0, maxloss))

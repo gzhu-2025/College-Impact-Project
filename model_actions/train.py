@@ -30,21 +30,26 @@ def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
     valavg = []
     for epoch in range(epochs):
         
+        total = 0
+        correct = 0
         for batch, sample in enumerate(dataloader):
 
             image, grid = sample["image"].to(device), sample["grid"].to(device)
             i = 0
             for image_square in split_image(image):
-                pred = model(image_square)
-                
                 grid_val = grid[0][i].unsqueeze(0).unsqueeze(0)
                 
-                loss = loss_fn(pred, grid_val.type(torch.float32))  
-
                 optimizer.zero_grad()
+                pred = model(image_square)
+                loss = loss_fn(pred, grid_val.type(torch.float32))  
                 loss.backward()
                 optimizer.step()
+
                 losses.append(loss.item())
+                _, predicted = pred.max(1)
+                total += 1
+                correct += predicted.eq(grid_val).sum().item()
+
                 i += 1
             if batch % 10 == 0:
                 os.system('cls')
@@ -53,7 +58,7 @@ def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
 
                 lossavg.append(meanloss)
                 
-                print(f"loss: {loss:>f} [{current:>5d}/{size:>5d}]\naverage validation loss: {meanvalloss:>f}\naverage loss: {meanloss:>f}")
+                print(f"loss: {loss:>f} [{current:>5d}/{size:>5d}]\naverage loss: {meanloss:>f}\naverage validation loss: {meanvalloss:>f}\nAccuracy: {correct/total * 100.}% ({correct}/{total})")
 
         val , _ = test(valdataloader, model, loss_fn)
         valloss.append(val.item())
