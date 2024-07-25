@@ -28,6 +28,7 @@ def test(dataloader, model, loss_fn):
     # num_batches = len(dataloader)
     model.eval()
     valloss = []
+    valavg = []
     
     with torch.no_grad():
         for batch, sample in enumerate(dataloader):
@@ -42,10 +43,13 @@ def test(dataloader, model, loss_fn):
                 loss = loss_fn(pred, grid_val.type(torch.float32)) 
 
                 valloss.append(loss.item())
+                valavg.append(np.mean(valloss[-50:]))
                 
+                os.system('cls')
+                print(f"batch: {batch}\nImage: [{i + 1}/16]\nTest Loss: {loss:>f}\nAverage Loss: {np.mean(valloss[-50:])}")
+
                 i += 1
-            os.system('cls')
-            print(f"batch: {batch}\nTest Loss: {loss:>f}\nAverage Loss: {np.mean(valloss[-50:])}")
+
     return np.mean(valloss), valloss
 
 

@@ -43,18 +43,17 @@ def show_grid_batch(sample_batched, train):
     plt.title("Batch from dataloader")
 
 def show_batch(dataloader, train):
-    if __name__ == "__main__":
-        for i_batch, sample_batched in enumerate(dataloader):
-            if train: 
-                print("train", i_batch, sample_batched["image"].size(), sample_batched["grid"].size())
-            else: 
-                print("test", i_batch, sample_batched["image"].size())
+    for i_batch, sample_batched in enumerate(dataloader):
+        if train: 
+            print("train", i_batch, sample_batched["image"].size(), sample_batched["grid"].size())
+        else: 
+            print("test", i_batch, sample_batched["image"].size())
 
-            if i_batch == 3 or sample_batched != False:
-                plt.figure()
-                show_grid_batch(sample_batched, train)
-                plt.title(f"Train: {train}")
-                plt.axis("off")
-                plt.ioff()
-                plt.show(block=True)
-                break
+        if i_batch == 3 or sample_batched != False:
+            plt.figure()
+            show_grid_batch(sample_batched, train)
+            plt.title(f"Train: {train}")
+            plt.axis("off")
+            plt.ioff()
+            plt.show(block=True)
+            break
