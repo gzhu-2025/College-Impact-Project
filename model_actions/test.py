@@ -24,11 +24,15 @@ device = (
 
 
 def test(dataloader, model, loss_fn):
+    best_acc = 0
     # size = len(dataloader.dataset)
     # num_batches = len(dataloader)
     model.eval()
     valloss = []
     valavg = []
+
+    correct = 0
+    total = 0
     
     with torch.no_grad():
         for batch, sample in enumerate(dataloader):
@@ -44,11 +48,24 @@ def test(dataloader, model, loss_fn):
 
                 valloss.append(loss.item())
                 valavg.append(np.mean(valloss[-50:]))
+
+                _, predicted = pred.max(1)
+                total += 1
+                correct += predicted.eq(grid_val).sum().item()
                 
                 # os.system('cls')
                 # print(f"batch: {batch}\nImage: [{i + 1}/16]\nTest Loss: {loss:>f}\nAverage Loss: {np.mean(valloss[-50:])}")
 
                 i += 1
+
+    acc = 100. * correct/total
+    if acc > best_acc:
+        if not os.path.isdir('checkpoints'):
+            os.mkdir('checkpoints')
+        torch.save(model.state_dict(), f'./checkpoints/{model._get_name()}.pth')
+        best_acc = acc
+        
+    
 
     return np.mean(valloss), valloss
 
