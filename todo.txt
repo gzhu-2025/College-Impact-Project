@@ -3,7 +3,7 @@
 Analyze CIFAR
  - Look at 10-20 times the model was wrong
     - Pattern? 
-    - Put is into some sort of report 
+    - Put it into some sort of report 
 
 
 Start saving your plots
