@@ -1,17 +1,17 @@
+from pyexpat import model
 import torch
 from torch.utils.data import DataLoader
-
 from datasets import *
 from utils import *
 from transforms import *
 from models import *
-from model_actions import *
+from model_actions import train
 
 # model = LeNet()
 
 # X = torch.randn(1, 3, 32, 32)
 
-# model(X).shape 
+# model(X).shape
 
 # sd = model.state_dict()
 
@@ -27,7 +27,9 @@ device = (
 print(f"Using {device} device")
 
 model2 = LeNet2().to(device)
-model2.load_state_dict(torch.load("./checkpoints/lenet.pth")['net'], strict=False)
+state_dict = torch.load("./checkpoints/lenet.pth")
+
+model2.load_state_dict(torch.load("./checkpoints/lenet.pth")["net"], strict=False)
 
 
 # loss_fn = nn.MSELoss()
@@ -43,10 +45,12 @@ gridpoints_dataset = GridPointsDataset(
     image_dir="data/images",
     train=True,
     # seed=seed,
-    transform=transforms.Compose([
-        ToTensor(),
-        ColorChannelCorrection(),
-        ]),
+    transform=transforms.Compose(
+        [
+            ToTensor(),
+            ColorChannelCorrection(),
+        ]
+    ),
 )
 
 
@@ -55,7 +59,9 @@ gridpoints_dataset = GridPointsDataset(
 
 from sklearn.model_selection import train_test_split
 
-range_train, range_test = train_test_split(range(len(gridpoints_dataset)), test_size=0.2)
+range_train, range_test = train_test_split(
+    range(len(gridpoints_dataset)), test_size=0.2
+)
 
 train_dataset = torch.utils.data.Subset(gridpoints_dataset, range_train)
 val_dataset = torch.utils.data.Subset(gridpoints_dataset, range_test)
@@ -72,8 +78,10 @@ val_dataset = torch.utils.data.Subset(gridpoints_dataset, range_test)
 # #         ]),
 # # )
 
-training_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0)
-val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=0)   
+training_dataloader = DataLoader(
+    train_dataset, batch_size=1, shuffle=True, num_workers=0
+)
+val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=True, num_workers=0)
 show_batch(training_dataloader, train=True)
 
 # # print(len(gridpoints_dataset), len(val_dataset))
@@ -97,11 +105,14 @@ lr = 1e-4
 
 # optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 
-train_set_testing = set([x['image_name'] for x in train_dataset])
-val_set_testing = set([x['image_name'] for x in val_dataset])
+train_set_testing = set([x["image_name"] for x in train_dataset])
+val_set_testing = set([x["image_name"] for x in val_dataset])
 
 
-assert train_set_testing.intersection(val_set_testing) == set(), "Train and validation sets are not disjoint"
+assert (
+    train_set_testing.intersection(val_set_testing) == set()
+), "Train and validation sets are not disjoint"
 
-lossavg, valavg  = train(training_dataloader, val_dataloader, model2, loss_fn, optimizer, epochs=100)
-
+lossavg, valavg = train(
+    training_dataloader, val_dataloader, model2, loss_fn, optimizer, epochs=100
+)
