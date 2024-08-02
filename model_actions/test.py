@@ -67,7 +67,7 @@ def test(dataloader, model, loss_fn):
         
     
 
-    return np.mean(valloss), valloss
+    return np.mean(valloss), valloss, acc
 
 
 

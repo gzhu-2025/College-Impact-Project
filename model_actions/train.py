@@ -54,8 +54,7 @@ def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
 
                 i += 1
             if batch % 10 == 0:
-                os.system("cls")
-                print("epoch: ", epoch)
+                
                 meanloss, meanvalloss, current = (
                     np.mean(losses[-50:]),
                     np.mean(valloss[-50:]),
@@ -64,13 +63,17 @@ def train(dataloader, valdataloader, model, loss_fn, optimizer, epochs=100):
 
                 lossavg.append(meanloss)
 
-                print(
-                    f"loss: {loss:>f} [{current:>5d}/{size:>5d}]\naverage loss: {meanloss:>f}\naverage validation loss: {meanvalloss:>f}\nAccuracy: {correct/total * 100.}% ({correct}/{total})"
-                )
+                
+        val_loss, _ , val_acc = test(valdataloader, model, loss_fn)
+        train_acc = correct/total * 100.
 
-        val, _ = test(valdataloader, model, loss_fn)
+        os.system("cls")
+        print("epoch: ", epoch)
+        print(f"average train loss: {meanloss:>f}\naverage validation loss: {val_loss:>f}\nAverage Train Accuracy: {train_acc}% ({correct}/{total})\nAverage Val Accuracy: {val_acc}%")
+        
+
         model.train()
-        valloss.append(val.item())
+        valloss.append(val_loss.item())
         valavg.append(np.mean(valloss[-50:]))
 
     plot_loss(

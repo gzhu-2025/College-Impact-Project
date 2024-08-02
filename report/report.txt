@@ -1,0 +1,77 @@
+Case 1:
+    - Predicted: frog, Actual: cat
+    - Ambiguous shape
+    - Lack of distinguishing shadows
+    - Distinguishing features: color pattern
+    - Red and blue background
+
+Case 2:
+    - Predicted: car, Actual ship
+    - Oversaturation of upper part, dark shadowing on bottom part
+    - Lack of clearly defined lines
+    - Red and black details
+    - Bottom right corner shows water-like background
+
+Case 3:
+    - Predicted: dog, Acutal: car
+    - Heavy shadows inside the car, around windows, and around tires
+    - Car's white paint creates an unidentifiable shape once details are 
+      obscured by heavy shadows
+    - Red background above the shape
+
+Case 4:
+    - Predicted: deer, Actual: plane
+    - No relative shadows to distinguish details
+    - Clear shape and structure
+    - Blue background
+
+Case 5:
+    - Predicted: deer, Actual: dog
+    - Ambiguous shape
+    - Lack of distinguishing shadows
+    - Distinguishing features: color pattern, limbs
+    - Red and black background
+
+Case 6:
+    - Aerial angle, uncommon profile
+    - Shadows on deck of ship, saturation on front of ship
+    - Green/black background, reminiscent of ocean
+    - Waves and foaming around the ship in the water
+
+Case 7:
+    - Predicted: cat, Actual: dog
+    - Clear dog head profile
+    - Recognizable ears, eyes, and nose
+    - Dark shadows in background
+
+Case 8:
+    - Predicted: cat, Actual: horse
+    - Clear horse head profile
+    - Recognizable nose, mouth, neck, bridle
+    - Distinguishable horizon line, white ground, blue sky and background
+
+Case 9:
+    - Predicted: bird, Actual: deer
+    - No distinguishing shapes
+    - Black and blue picture, very dark
+    - No defining details in color or background
+
+Case 10:
+    - Predicted: deer, Actual: dog
+    - Very bright, saturated photo
+    - Clear dog profile, terrier breed
+    - Typical fur coloring
+    - Noticeable ears, eyes, nose, tongue, letgs, and Typical
+
+Cases 11-20:
+    - Many photos were dark or had ambiguous shapes
+    - Some lacked distinguishable details
+    - Few, obvious mistakes made by the model
+
+The model seems to be making predictions by looking for a clear 
+figure in the photo and basing its predictions off of that. It 
+struggles to identify figures when images are oversaturated or have 
+heavy shadows that obscure details. Rarely, the model makes an obvious
+error in identifying a figure. Often, the model struggles with unconventional
+angles or objects. It does not seem to take the background and environment into 
+consideration, as a human would do when classifying images. 
