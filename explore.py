@@ -3,10 +3,10 @@ import os
 import torch
 from skimage import io  # type: ignore
 
-image_directories = os.listdir("data/images")
+image_directories = os.listdir("data")
 
 for dir in image_directories:
-    print(dir, ": ", len(os.listdir(f"data/images/{dir}")))
+    print(dir, ": ", len(os.listdir(f"data/{dir}")))
 
 
 cat_to_int = {}
@@ -14,7 +14,7 @@ current_int = 0
 X = []
 y = []
 for dir in image_directories:
-    current_direcotry = f"data/images/{dir}"
+    current_direcotry = f"data/{dir}"
     current_category = dir
     cat_to_int[current_category] = current_int
 
