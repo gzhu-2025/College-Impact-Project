@@ -10,7 +10,7 @@ class LeNet(nn.Module):
         self.conv2 = nn.Conv2d(6, 16, 5)
         self.fc1 = nn.Linear(11664, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 12)
+        self.fc3 = nn.Linear(84, 11)
 
     def forward(self, x):
         x = torch.permute(x, (0, 3, 1, 2))
