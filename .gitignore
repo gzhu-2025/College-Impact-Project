@@ -3,6 +3,8 @@ cifar
 cifar-data
 recaptcha-data
 report
+X.pt
+y.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
