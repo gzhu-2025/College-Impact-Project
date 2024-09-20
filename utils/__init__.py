@@ -4,4 +4,3 @@ from .imagesplit import *
 from .plotloss import *
 from .grid import * 
 from .rename import * 
-from .savedata import *
