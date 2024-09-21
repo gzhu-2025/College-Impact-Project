@@ -41,9 +41,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 net.to(device)
 net.train()
 
-optimizer = torch.optim.Adam(net.parameters(), lr=3e-4)
+optimizer = torch.optim.Adam(net.parameters())
 criterion = torch.nn.CrossEntropyLoss()
-scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 10, 2)
+scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=1000, T_mult=1, eta_min=1e-4)
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(X / 255.0, y, test_size=0.2)
@@ -113,6 +113,6 @@ def train(epochs):
     plot_loss(
         net._get_name(), losses, epochs, val_losses, max(max(losses), max(val_losses))
     )
-epochs=10000
+epochs=6000
 train(epochs=epochs)
 torch.save(net.state_dict(), f"states/{net._get_name()}_{epochs}.pth")
