@@ -1,0 +1,26 @@
+
+
+Analyze CIFAR
+ - Look at 10-20 times the model was wrong
+    - Pattern? 
+    - Put it into some sort of report 
+
+
+Start saving your plots
+  - Make the title something that explains the current run 
+
+
+Metrics: 
+
+At the end of every epoch:
+  - Average Training Loss
+  - Average Validation Loss
+  - Average Train Accuracy
+  - Average Validation Accuracy
+
+
+Can we make this work:
+
+ - Our dataset is small 
+ - Our model is simple
+ - CIFAR is relatively simple
