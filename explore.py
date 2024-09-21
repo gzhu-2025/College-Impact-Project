@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import torch
+import torch.optim as optim
 import time
 
 from utils import plot_loss
@@ -42,7 +43,7 @@ net.train()
 
 optimizer = torch.optim.Adam(net.parameters(), lr=3e-4)
 criterion = torch.nn.CrossEntropyLoss()
-
+scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 10, 2)
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(X / 255.0, y, test_size=0.2)
@@ -50,7 +51,8 @@ X_train, X_test, y_train, y_test = train_test_split(X / 255.0, y, test_size=0.2)
 import numpy as np
 
 losses = []
-acc = []
+total_train_acc = []
+total_val_acc = []
 val_losses = []
 
 batch_size = 8
@@ -69,11 +71,12 @@ def train(epochs):
 
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         losses.append(loss.item())
         train_acc = (outputs.argmax(1) == y_batch).float().mean()
+        total_train_acc.append(train_acc.item())
 
-        
         if step % 10 == 0:
             cat_correct = {cat[0]: 0 for cat in cat_to_int.items()}
             # print(cat_correct)
@@ -82,21 +85,24 @@ def train(epochs):
                 val_output = net(X_test.to(device))
                 # compute val accuracy
                 val_acc = (val_output.argmax(1) == y_test.to(device)).float().mean()
+                total_val_acc.append(val_acc.item())
                 val_loss = criterion(val_output, y_test.to(device))
                 val_losses.append(val_loss.item())
                 os.system('cls') if os.name == 'nt' else os.system('clear')
                 
+                print(f"Epoch: {step}")
                 print(f"Train Loss: {np.mean(losses[-50:]):.2f}")
-                print(f"Train Accuracy: {train_acc.item():.2f}")
+                print(f"Train Accuracy: {np.mean(total_train_acc[-50:]):.2f}")
                 print(f"Val Loss: {np.mean(val_losses[-50:]):.2f}")
-                print(f"Val Accuracy: {val_acc.item():.2f}")
+                print(f"Val Accuracy: {np.mean(total_val_acc[-50:]):.2f}")
                 
 
                 
 
                 for j in range(len(cat_correct)):
-                    X_class = X_test[y_test == j]                    
                     cat = int_to_cat.get(j)
+
+                    X_class = X_test[y_test == j]                    
                     out_class = net(X_class.to(device))
 
                     cat_correct[cat] += (out_class.argmax(1) == j).int().sum().item()
@@ -105,7 +111,8 @@ def train(epochs):
                 print(f"Macro Accuracy: {sum([b for a, b in cat_correct.items()])/y_test.shape[0]:.2f}")
 
     plot_loss(
-        net._get_name(), losses, 500, val_losses, max(max(losses), max(val_losses))
+        net._get_name(), losses, epochs, val_losses, max(max(losses), max(val_losses))
     )
-
-train(1000)
+epochs=10000
+train(epochs=epochs)
+torch.save(net.state_dict(), f"states/{net._get_name()}_{epochs}.pth")
